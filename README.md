@@ -28,6 +28,6 @@ The goal is to streamline the setup of a Symfony development environment in just
 
 ## Castor
 
-Castor est un outil de génération de scripts d'automatisation pour les projets PHP. Il permet de créer des scripts d'installation, de configuration, de déploiement, de maintenance, etc. pour vos projets PHP. Castor est développé par [JoliCode](https://jolicode.com/).
+Castor est un outil de génération de scripts d'automatisation pour les projets PHP. Il permet de créer des scripts d'installation, de configuration, de déploiement, de maintenance, etc. pour vos projets PHP. Castor est développé par [JoliCode](https://castor.jolicode.com/).
 
-Castor is a task automation script generator for PHP projects. It allows you to create installation, configuration, deployment, maintenance, etc. scripts for your PHP projects. Castor is developed by [JoliCode](https://jolicode.com/).
+Castor is a task automation script generator for PHP projects. It allows you to create installation, configuration, deployment, maintenance, etc. scripts for your PHP projects. Castor is developed by [JoliCode](https://castor.jolicode.com/).
