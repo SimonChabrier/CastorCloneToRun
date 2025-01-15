@@ -3,13 +3,21 @@
 use Castor\Attribute\AsTask;
 use function Castor\io;
 
-#[AsTask(description: 'Cloner un dépôt, configurer et lancer un projet Symfony Edith avec serveurs et navigation')]
+#[AsTask(description: 'Cloner un dépôt, configure et lance un projet Symfony avec serveurs et navigation')]
 function cloneProject(): void
 {
-    io()->title('Initialisation du projet Symfony Edith');
+    io()->title('Initialisation du projet Symfony');
 
     $currentDir = getcwd();
     io()->text("Dossier actuel : $currentDir");
+
+    // demander si on veut remonter d'un niveau pour cloner le dépôt hors du dossier courant
+    $upLevel = io()->confirm('Voulez-vous cloner le dépôt dans un dossier parent ?', true);
+    if ($upLevel) {
+        chdir('..');
+        $currentDir = getcwd();
+        io()->text("Nouveau dossier actuel : $currentDir");
+    }
 
     // Étape 1 : Clonage du dépôt Git
     $repoUrl = io()->ask('Entrez l\'URL ou le SSH du dépôt Git');
@@ -21,7 +29,7 @@ function cloneProject(): void
         return;
     }
 
-    io()->section('Clonage du dépôt...');
+    io()->section('On clone le dépôt Git...');
     exec("git clone $repoUrl $projectName", $output, $returnVar);
 
     if ($returnVar === 0) {
@@ -41,26 +49,41 @@ function cloneProject(): void
         // Demander le type de base de données
         $dbType = io()->choice(
             'Quel type de base de données utilisez-vous ?',
-            ['mysql', 'mariadb', 'sqlite'],
+            ['mysql', 'sqlite'],
             'mysql'
         );
 
         if ($dbType === 'sqlite') {
             $dbPath = io()->ask('Entrez le chemin du fichier SQLite', '%kernel.project_dir%/var/data.db');
             $dbDsn = "DATABASE_URL=\"sqlite:///$dbPath\"";
+
+            // si le fichier n'existe pas on le crée avec un fichier vide
+            if (!file_exists($dbPath)) {
+                $dbDir = dirname($dbPath);
+                if (!is_dir($dbDir)) {
+                    mkdir($dbDir, 0755, true);
+                }
+                touch($dbPath);
+            }
         } else {
             // MySQL ou MariaDB
             $dbUser = io()->ask('Entrez l\'identifiant de connexion la base de données', 'root');
             $dbPassword = io()->ask('Entrez le mot de passe de connexion de la base de données', 'root');
             $dbHost = io()->ask('Entrez l\'hôte de la base de données', 'localhost');
             $dbPort = io()->ask('Entrez le port de connexion à la base de données', '3306');
-            $dbName = io()->ask('Entrez le nom de la base de données qui va être crée', 'symfony_project');
+            $dbName = io()->ask('Entrez le nom de la base de données qui va être crée', '_2025_edith');
 
             // Fonction pour vérifier l'existence de la base de données
             function checkDatabaseExists($dbUser, $dbPassword, $dbHost, $dbPort, $dbName)
             {
-                $dbExists = exec("mysql -u $dbUser -p$dbPassword -h $dbHost -P $dbPort -e \"SHOW DATABASES LIKE '$dbName'\" | grep $dbName");
-                return !empty($dbExists);
+                try {
+                    $pdo = new PDO("mysql:host=$dbHost;port=$dbPort", $dbUser, $dbPassword);
+                    $query = $pdo->prepare("SHOW DATABASES LIKE ?");
+                    $query->execute([$dbName]);
+                    return $query->fetch() !== false;
+                } catch (PDOException $e) {
+                    throw new RuntimeException("Erreur de connexion MySQL : " . $e->getMessage());
+                }
             }
 
             // Vérification de l'existence de la base de données
@@ -85,30 +108,41 @@ function cloneProject(): void
     }
 
     // Étape 3 : Installation des dépendances avec Composer
-    io()->section('Installation des dépendances Composer...');
-    exec('composer install', $output, $returnVar);
-    if ($returnVar === 0) {
-        io()->success('Dépendances Composer installées.');
+    $installComposer = io()->confirm('Voulez-vous installer les dépendances Composer maintenant ?', true);
+
+    if ($installComposer) {
+        io()->section('Installation des dépendances Composer...');
+        exec('composer install', $output, $returnVar);
+        if ($returnVar === 0) {
+            io()->success('Dépendances Composer installées.');
+        } else {
+            io()->error('Échec de l\'installation des dépendances Composer.');
+            return;
+        }
     } else {
-        io()->error('Échec de l\'installation des dépendances Composer.');
-        return;
+        io()->success('Installation des dépendances Composer ignorée.');
     }
 
     // Étape 4 : Installation des dépendances NPM
     if (file_exists('package.json')) {
-        io()->section('Installation des dépendances NPM...');
-        exec('npm install', $output, $returnVar);
-        if ($returnVar === 0) {
-            io()->success('Dépendances NPM installées.');
+        // demander si on veut installer les dépendances NPM  ou pas
+        $installNpm = io()->confirm('Voulez-vous installer les dépendances NPM maintenant ?', true);
+
+        if ($installNpm) {
+            io()->section('Installation des dépendances NPM...');
+            exec('npm install', $output, $returnVar);
+            if ($returnVar === 0) {
+                io()->success('Dépendances NPM installées.');
+            } else {
+                io()->error('Échec de l\'installation des dépendances NPM.');
+                return;
+            }
         } else {
-            io()->error('Échec de l\'installation des dépendances NPM.');
-            return;
+            io()->success('Installation des dépendances NPM ignorée.');
         }
-    } else {
-        io()->success('Aucun fichier package.json trouvé, installation NPM ignorée.');
     }
 
-    // Étape 6 : Création de la base de données
+    // Étape 5 : Création de la base de données
     io()->section('Création de la base de données...');
     exec('php bin/console doctrine:database:create', $output, $returnVar);
     if ($returnVar === 0) {
@@ -118,7 +152,7 @@ function cloneProject(): void
         return;
     }
 
-    // Étape 7 : Mise à jour du schéma de la base de données
+    // Étape 6 : Mise à jour du schéma de la base de données
     io()->section('Mise à jour du schéma Doctrine...');
     exec('php bin/console doctrine:schema:update --force --complete', $output, $returnVar);
     if ($returnVar === 0) {
@@ -128,7 +162,7 @@ function cloneProject(): void
         return;
     }
 
-    // Étape 8 : Vérification des droits sur le dossier public
+    // Étape 7 : Vérification des droits sur le dossier public
     io()->section('Vérification des droits sur le dossier public...');
     if (!is_writable('public')) {
         io()->warning('Le dossier public n\'a pas les permissions d\'écriture nécessaires. Vérifiez les droits.');
@@ -150,7 +184,7 @@ function cloneProject(): void
     $launchServers = io()->confirm('Voulez-vous lancer les serveurs Symfony et ouvrir le navigateur maintenant ?', true);
     if ($launchServers) {
         runProject(); // appel de runProject pour lancer les serveurs
-        sleep(5); // Petite pause pour laisser le temps aux serveurs de démarrer
+        sleep(5); // Attente de 5 secondes
         openProject(); // appel de openProject pour ouvrir le navigateur
     } else {
         io()->text('Vous pouvez lancer le serveur de développement avec la commande "php castor.php runProject"');
@@ -174,58 +208,93 @@ function runProject(): void
     $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';  // Windows
     $isLinux = strtolower(PHP_OS) === 'linux';  // Linux
 
-    // Étape 9 : Lancer le serveur Symfony
+    // Étape 1 : Lancer le serveur Symfony uniquement s'il n'est pas déjà en cours
     io()->section('Démarrage du serveur Symfony...');
+
+    $serverRunning = false;
+    $pid = null;
+
     if ($isMac) {
-        // macOS : utiliser osascript pour ouvrir un terminal
-        exec('osascript -e \'tell application "Terminal" to do script "cd ' . getcwd() . ' && symfony server:start; exit"\'', $output, $returnVar);
+        // Vérifier si le serveur Symfony est déjà en cours
+        exec('lsof -i :8000', $output, $returnVar);
+        if (!empty($output)) {
+            $serverRunning = true;
+            // Extraire le PID du serveur Symfony en cours d'exécution
+            preg_match('/\d+/', $output[0], $matches);
+            $pid = $matches[0] ?? null;
+        }
     } elseif ($isWindows) {
-        // Windows : utiliser start pour ouvrir un nouveau terminal (cmd)
-        exec('start cmd.exe /K "cd /d ' . getcwd() . ' && symfony server:start && exit"', $output, $returnVar);
+        // Vérifier si le serveur Symfony est déjà en cours (port 8000 utilisé)
+        exec('netstat -ano | findstr :8000', $output, $returnVar);
+        if (!empty($output)) {
+            $serverRunning = true;
+            // Extraire le PID à partir de la sortie de netstat (dernier champ)
+            preg_match('/\d+/', end($output), $matches);
+            $pid = $matches[0] ?? null;
+        }
     } elseif ($isLinux) {
-        // Linux : essayer d'ouvrir un terminal avec gnome-terminal ou xterm
+        // Vérifier si le serveur Symfony est déjà en cours
+        exec('lsof -i :8000', $output, $returnVar);
+        if (!empty($output)) {
+            $serverRunning = true;
+            // Extraire le PID du serveur Symfony en cours d'exécution
+            preg_match('/\d+/', $output[0], $matches);
+            $pid = $matches[0] ?? null;
+        }
+    }
+
+    if ($serverRunning && $pid !== null) {
+        // Si le serveur est déjà en cours, le tuer
+        io()->warning('Le serveur Symfony est déjà en cours d\'exécution, arrêt du processus...');
+        if ($isMac) {
+            exec('kill -9 ' . $pid, $output, $returnVar);
+        } elseif ($isWindows) {
+            exec('taskkill /F /PID ' . $pid, $output, $returnVar);
+        } elseif ($isLinux) {
+            exec('kill -9 ' . $pid, $output, $returnVar);
+        }
+
+        if ($returnVar === 0) {
+            io()->success('Serveur Symfony arrêté avec succès.');
+        } else {
+            io()->error('Erreur lors de l\'arrêt du serveur Symfony.');
+            return;
+        }
+    }
+
+    // Démarrer le serveur Symfony
+    io()->section('Démarrage du serveur Symfony...');
+
+    if ($isMac) {
+        exec('osascript -e \'tell application "Terminal" to do script "cd ' . getcwd() . ' && symfony server:start"\'', $output, $returnVar);
+    } elseif ($isWindows) {
+        pclose(popen('start "" cmd.exe /K "cd /d ' . getcwd() . ' && symfony server:start"', 'r'));
+    } elseif ($isLinux) {
         exec('gnome-terminal -- bash -c "cd ' . getcwd() . ' && symfony server:start; exec bash"', $output, $returnVar);
         if ($returnVar !== 0) {
-            // Si gnome-terminal échoue, essayer avec xterm
             exec('xterm -e "cd ' . getcwd() . ' && symfony server:start; exec bash"', $output, $returnVar);
         }
     }
 
-    if ($returnVar === 0) {
-        io()->success('Serveur Symfony démarré dans un nouveau terminal.');
-    } else {
-        io()->error('Échec du démarrage du serveur Symfony.');
-        return;
-    }
+    io()->success('Serveur Symfony démarré.');
 
-    // Petite pause pour s'assurer que le terminal est bien ouvert
-    sleep(2);
+    sleep(2); // Attente de 2 secondes
 
-    // Étape 10 : Monitorer les assets
+    // Étape 2 : Démarrer la surveillance des assets
     io()->section('Démarrage de la surveillance des assets...');
+
     if ($isMac) {
-        // macOS : utiliser osascript pour ouvrir un terminal
-        exec('osascript -e \'tell application "Terminal" to do script "cd ' . getcwd() . ' && npm run watch; exit"\'', $output, $returnVar);
+        exec('osascript -e \'tell application "Terminal" to do script "cd ' . getcwd() . ' && npm run watch"\'', $output, $returnVar);
     } elseif ($isWindows) {
-        // Windows : utiliser start pour ouvrir un nouveau terminal (cmd)
-        exec('start cmd.exe /K "cd /d ' . getcwd() . ' && npm run watch && exit"', $output, $returnVar);
+        pclose(popen('start "" cmd.exe /K "cd /d ' . getcwd() . ' && npm run watch"', 'r'));
     } elseif ($isLinux) {
-        // Linux : essayer d'ouvrir un terminal avec gnome-terminal ou xterm
         exec('gnome-terminal -- bash -c "cd ' . getcwd() . ' && npm run watch; exec bash"', $output, $returnVar);
         if ($returnVar !== 0) {
-            // Si gnome-terminal échoue, essayer avec xterm
             exec('xterm -e "cd ' . getcwd() . ' && npm run watch; exec bash"', $output, $returnVar);
         }
     }
 
-    if ($returnVar === 0) {
-        io()->success('Surveillance des assets activée dans un nouveau terminal.');
-    } else {
-        io()->error('Échec de la surveillance des assets.');
-    }
-
-    // Petite pause pour s'assurer que le terminal est bien ouvert
-    sleep(2);
+    io()->success('Surveillance des assets activée dans un nouveau terminal.');
 }
 
 #[AsTask(description: 'Lancer le navigateur pour ouvrir le projet')]
