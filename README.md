@@ -15,7 +15,7 @@
 - Confirme le clonage du dépôt Git.
 - Crée le fichier `.env.local` à partir du fichier `.env`
 - Demande le driver de la base de données (MySQL, SQLite).
-- Si Sqlite, crée le fichier de base de données dans `%kernel.project_dir%/var/data.db`
+- Si SQLite, crée le fichier de base de données dans `%kernel.project_dir%/var/data.db`
 - Demandes les informatios de connexion à la base de données.
 - Vérifie si la BDD existe déjà et si oui demande un autre nom tant que la BDD existe.
 - Configure la connexion à la base de donnée dasn le fichier `.env.local`
