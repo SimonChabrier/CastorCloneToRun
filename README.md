@@ -11,10 +11,9 @@
 - Demande si on veut cloner dans le dossier local ou remonter d'un niveau.
 - Demande l'url ou ssh du dépôt Git du projet Symfony.
 - Clone le dépôt Git du projet Symfony dans le dossier choisi. 
-- Stope le script si le dossier existe déjà.
+- Stoppe le script si le dossier existe déjà.
 - Confirme le clonage du dépôt Git.
 - Crée le fichier `.env.local` à partir du fichier `.env`
-- Installe les dépendances via Composer et Node.js.
 - Demande le driver de la base de données (MySQL, SQLite).
 - Si Sqlite, crée le fichier de base de données dans `%kernel.project_dir%/var/data.db`
 - Demandes les informatios de connexion à la base de données.
@@ -46,7 +45,6 @@ L'objectif est de faciliter la mise en place d'un environnement de développemen
 - Stops the script if the folder already exists.
 - Confirms the cloning of the Git repository.
 - Creates the `.env.local` file from the `.env` file.
-- Installs dependencies via Composer and Node.js.
 - Asks for the database driver (MySQL, SQLite).
 - If SQLite, creates the database file in `%kernel.project_dir%/var/data.db`.
 - Requests database connection information.
