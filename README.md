@@ -16,7 +16,7 @@
 - Crée le fichier `.env.local` à partir du fichier `.env`
 - Demande le driver de la base de données (MySQL, SQLite).
 - Si SQLite, crée le fichier de base de données dans `%kernel.project_dir%/var/data.db`
-- Demandes les informatios de connexion à la base de données.
+- Demandes les informatios de connexion à la base de données : username, password, host, port, database_name.
 - Vérifie si la BDD existe déjà et si oui demande un autre nom tant que la BDD existe.
 - Configure la connexion à la base de donnée dasn le fichier `.env.local`
 - Demande si on veut installer les dépendances avec Composer.
@@ -47,7 +47,7 @@ L'objectif est de faciliter la mise en place d'un environnement de développemen
 - Creates the `.env.local` file from the `.env` file.
 - Asks for the database driver (MySQL, SQLite).
 - If SQLite, creates the database file in `%kernel.project_dir%/var/data.db`.
-- Requests database connection information.
+- Requests database connection information : username, password, host, port, database_name.
 - Checks if the database already exists and, if so, asks for a new name until a non-existing database name is provided.
 - Configures the database connection in the `.env.local` file.
 - Asks whether to install dependencies with Composer.
