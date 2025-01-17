@@ -54,9 +54,10 @@ function cloneProject(): void
         );
 
         if ($dbType === 'sqlite') {
-            $dbPath = io()->ask('Entrez le chemin du fichier SQLite', '%kernel.project_dir%/var/data.db');
-            $dbDsn = "DATABASE_URL=\"sqlite:///$dbPath\"";
-
+            $dbName = io()->ask('Entrez le nom du fichier de la base de donnée SqLite', 'data.db');
+            // # DATABASE_URL="sqlite:///%kernel.project_dir%/var/app.db"
+            $dbDsn = "DATABASE_URL=\"sqlite:///%kernel.project_dir%/var/$dbName\"";
+            $dbPath = 'var' . DIRECTORY_SEPARATOR . $dbName;
             // si le fichier n'existe pas on le crée avec un fichier vide
             if (!file_exists($dbPath)) {
                 $dbDir = dirname($dbPath);
